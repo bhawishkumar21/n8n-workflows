@@ -1,0 +1,155 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "feedback",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3f453d41-c2b9-4acf-b6f2-483acdd2c2a7",
+      "name": "Webhook",
+      "webhookId": "715b7bc8-a6f7-47d0-a056-2252a99f109f"
+    },
+    {
+      "parameters": {
+        "tableId": "international cafe",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_name",
+              "fieldValue": "={{ $json.body.name }}"
+            },
+            {
+              "fieldId": "user_email",
+              "fieldValue": "={{ $json.body.email }}"
+            },
+            {
+              "fieldId": "feedback",
+              "fieldValue": "={{ $json.body.message }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "db621210-c017-4813-971e-b0e733bfb67f",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "6gX3B5b0b5K4klyR",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are the Customer Relations Manager at \"International Cafe\". Write a polite, professional, and context-aware email response to a customer based on their feedback. \n\nCustomer Name: {{ $json.user_name }}\nCustomer Feedback: {{ $json.feedback }}\n\nStrict Rules for the Email:\n1. Start directly with \"Dear {{ $json.user_name }},\". Do not include any subject lines, introductory text, or AI confirmations like \"Here is your email.\"\n2. Analyze the feedback. If it is positive, show deep appreciation. If it is negative or constructive, apologize gracefully and assure them that their input helps us improve.\n3. Express that we are always pleased to serve them and warmly invite them to visit International Cafe again.\n4. Keep the email concise, direct, and to the point. No unnecessary fluff.\n5. You must end the email exactly with:\n\nBest regards,\nInternational Cafe"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "e4424072-84e2-4d29-ab25-1ff783ad1512",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "Thank You for Your Feedback – International Cafe",
+        "emailType": "text",
+        "message": "={{ $json.output[0].content[0].text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        0
+      ],
+      "id": "52e2107e-1081-49e5-b1c4-95d588c25327",
+      "name": "Send a message",
+      "webhookId": "62ab253e-657c-42a3-800e-989637fbaece",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gnx6ROEZfsgl4sS3",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "44f15e5d2687eeaf77a809dbf46489331c96f72d1b12166b60f2be6407b95a7a"
+  }
+}
