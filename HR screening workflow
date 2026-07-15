@@ -1,0 +1,665 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hr screening",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -560,
+        -32
+      ],
+      "id": "61d770d5-5d76-4129-81fc-3aa191f46db3",
+      "name": "Webhook",
+      "webhookId": "6a6e7970-ea8e-4bbe-90f0-0f48a5f364ec"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "={{ $('Webhook').item.binary.resume }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        96,
+        112
+      ],
+      "id": "d360f397-2f07-4df2-a35d-0f4a05a7b9b1",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "role\": \"You are an expert technical recruiter and HR Manager. Your job is to strictly analyze the provided Candidate Resume against the target Job Description (JD).\",\n\"target_job_description\": \"Looking for a Senior Cybersecurity Analyst. Must have 5+ years of experience. Core stack: Network Security, Incident Response, SIEM (Splunk/ELK), Vulnerability Assessment (Nessus/Qualys), Cloud Security (AWS/Azure), and scripting (Python/Bash). Strong focus on threat hunting, forensic analysis, compliance (ISO 27001/NIST), and firewall/IDS/IPS management.\",\n\"instructions\": [\n\"1. Extract the key technical skills from the resume.\",\n\"2. Provide a strict matching score between 0 and 100 based on how well the candidate matches the JD.\",\n\"3. Provide a brief 2-3 sentence technical justification/reason for this score.\",\n\"4. You must respond ONLY in a valid JSON format. Do not include markdown code blocks (like ```json).\"\n],\n\"expected_json_schema\": {\n\"match_score\": 85,\n\"skills\": [\"Network Security\", \"Splunk\", \"Python\", \"Vulnerability Assessment\"],\n\"reason\": \"The candidate demonstrates strong alignment with incident response and core security tools, though they may lack advanced experience in specific compliance frameworks or cloud-native security architecture required for this senior role."
+            },
+            {
+              "content": "=candidate name: {{ $('Webhook').item.json.body.fullname }}\ncandidate email: {{ $('Webhook').item.json.body.email }}\nwhy they want to join:{{ $('Webhook').item.json.body.motivation }}\n\ncandidate resume text: {{ $json.text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        256,
+        112
+      ],
+      "id": "52c97588-3e17-4b9a-baeb-c91eb3cd18f2",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "candidates",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_name",
+              "fieldValue": "={{ $('Webhook').item.json.body.fullname }}"
+            },
+            {
+              "fieldId": "candidate_email",
+              "fieldValue": "={{ $('Webhook').item.json.body.email }}"
+            },
+            {
+              "fieldId": "reason",
+              "fieldValue": "={{ $json.output[0].content[0].text.reason }}"
+            },
+            {
+              "fieldId": "skills",
+              "fieldValue": "={{ $json.output[0].content[0].text.skills }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        608,
+        112
+      ],
+      "id": "0f0740a3-fadc-425b-bfd0-00a4f9fbb371",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "6gX3B5b0b5K4klyR",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3977a7f6-6754-4d43-ad6b-04039e6f7ca8",
+              "leftValue": "={{ $('Message a model').item.json.output[0].content[0].text.match_score }}",
+              "rightValue": 60,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        112
+      ],
+      "id": "a40c3f64-c0cf-42cf-b0b4-31150ca9f4d3",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=Write a short, professional internal email to the HR Manager (sarah). Inform her that a top candidate, {{ $('Webhook').item.json.body.fullname }}, has scored {{ $('Message a model').item.json.output[0].content[0].text.match_score }}/100 in the AI screening for the cybersecurity engineer role. Briefly include the reasons: {{ $json.reason }}. Ask her to schedule an interview. Keep it concise. Starts directly with Email body donot add any starting or ending lines ends exactly like this: Best Regards, Bhavesh kumar"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        944,
+        -32
+      ],
+      "id": "4fae2ef4-c1d5-49f4-ba41-3bf4f2f82d52",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "bhawishk15@gmail.com",
+        "subject": "candidate shortlisted",
+        "emailType": "text",
+        "message": "={{ $json.output[0].content[0].text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1232,
+        16
+      ],
+      "id": "277d42c9-f360-4ff1-b2d3-ffb282a1c581",
+      "name": "Send a message",
+      "webhookId": "5cd2191c-320f-494a-99a8-8e9db6c2797f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gnx6ROEZfsgl4sS3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "candidates",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_name",
+              "condition": "eq",
+              "keyValue": "={{ $('Webhook').item.json.body.fullname }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "shortlisted"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        16
+      ],
+      "id": "3b4e8ac9-470c-4703-9d60-a215afc29637",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "6gX3B5b0b5K4klyR",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=Write a professional, short, and concise email body to the candidate informing them that they have been shortlisted for the Cybersecurity Engineer  role. Mention that the HR team will contact them soon to schedule their interview, and thank them for applying.\n\nStrict Constraints:\n\nStart directly with the email body greeting (e.g., Dear Candidate Name, or Hi [Name]).\n\nDo not include any Subject line, headers, preambles, or explanations before or after the text.\n\nDo not wrap the response in markdown code blocks like text or html.\n\nThe candidate's name is: {{ $('Webhook').item.json.body.fullname }}\n\nThe final closing of the email must exactly be:\nBest Regards,\nBhavesh kumar"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1648,
+        16
+      ],
+      "id": "2f66c9cd-51a1-489e-a694-8b11ddc4540e",
+      "name": "Message a model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "congratulations",
+        "emailType": "text",
+        "message": "={{ $json.output[0].content[0].text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2000,
+        16
+      ],
+      "id": "152b2832-16a1-44c5-8d92-30ea999d7b0f",
+      "name": "Send a message1",
+      "webhookId": "b573bb25-7214-4d6f-b2b4-a117d92c08d2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gnx6ROEZfsgl4sS3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "=candidates",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_name",
+              "condition": "eq",
+              "keyValue": "={{ $('Webhook').item.json.body.fullname }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "rejected"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        288
+      ],
+      "id": "34dce88f-e397-4dca-85cb-19665457342b",
+      "name": "Update a row1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "6gX3B5b0b5K4klyR",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=Write a very polite, encouraging, and empathetic rejection email to the candidate {{ $('Webhook').item.json.body.fullname }}.\nThank them for applying for the cybersecurity engineer role.\nMention that while their profile is impressive, we are looking for someone who aligns slightly closer with our immediate technical stack needs at this moment.\nWish them the best for their future. Do not mention the exact AI score. Donot include subject line or donot include any starting or ending extra lines\nEnds exactly with:\nBest Regards,\nBhavesh kumar\nstarts directly with email body"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1280,
+        288
+      ],
+      "id": "ecc410ef-9382-4ac4-afc9-6697bb18dec0",
+      "name": "Message a model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "Update regarding your application for the Cybersecurity Engineer role",
+        "emailType": "text",
+        "message": "={{ $json.output[0].content[0].text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1632,
+        288
+      ],
+      "id": "a2b91807-45af-4f4b-8e36-a19eb440b43d",
+      "name": "Send a message2",
+      "webhookId": "0f3facd5-3cd7-4e4b-8acd-8f2fe26e4f7b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gnx6ROEZfsgl4sS3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "candidates",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_email",
+              "condition": "eq",
+              "keyValue": "={{ $json.body.email }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        -32
+      ],
+      "id": "1102f59c-07d0-4a29-bb77-338975980c59",
+      "name": "Get many rows",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "6gX3B5b0b5K4klyR",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e5340ac8-d3f5-4daf-8f56-32cfb5c3be9a",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -112,
+        -32
+      ],
+      "id": "2f03eae8-c046-4c2b-86d7-f8ddbe5d0120",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "Application Already Received",
+        "emailType": "text",
+        "message": "=Hi {{ $('Webhook').item.json.body.fullname\n}},  We have already received your application for the Cybersecurity position. Our team is currently reviewing it, and we will get back to you soon. There is no need to submit multiple applications.  \nThank you for your patience!  \nBest Regards, \nHR Team",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        -288
+      ],
+      "id": "8efef069-862c-4cfc-89e4-92dee6290903",
+      "name": "Send a message3",
+      "webhookId": "d87d0799-d74c-4d2e-a005-39ea94e2bea2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gnx6ROEZfsgl4sS3",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        [
+          {
+            "node": "Message a model2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model2": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row1": {
+      "main": [
+        [
+          {
+            "node": "Message a model3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model3": {
+      "main": [
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send a message3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "44f15e5d2687eeaf77a809dbf46489331c96f72d1b12166b60f2be6407b95a7a"
+  }
+}
