@@ -1,0 +1,405 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2080,
+        208
+      ],
+      "id": "58a0272e-4772-44b0-887a-b32611f4376e",
+      "name": "Webhook",
+      "webhookId": "db0f5650-5995-4654-9f4e-c2ee51e93ece"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "invoice",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1872,
+        208
+      ],
+      "id": "f9d94f69-72ed-42bc-8ff6-67c558842630",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are an expert Document Parsing AI Agent. Your sole task is to analyze the raw, unstructured text extracted from an invoice PDF and convert it into a strictly structured, clean JSON object.\n\nExtract the following target fields from the provided text:\n1. \"vendor_name\": The official business name of the vendor/sender.\n2. \"invoice_number\": The unique serial or identification number of the invoice.\n3. \"amount\": The total payable amount as a float/decimal number. Remove currency symbols (e.g., convert \"$3,450.00\" to 3450.00).\n4. \"due_date\": The payment due date converted into \"YYYY-MM-DD\" format.\n\nCRITICAL RULES:\n- Do not make up or assume any values. If a field cannot be found, set its value to null.\n- Do not include any markdown formatting, backticks (like ```json), or explanatory text in your response.\n- Return ONLY a valid, minified JSON object.\n\nExample Output Format:\n{\"vendor_name\": \"Nexus Tech Solutions Ltd\", \"invoice_number\": \"NEX-2026-0891\", \"amount\": 3450.00, \"due_date\": \"2026-08-17\"}"
+            },
+            {
+              "content": "=Please extract the invoice details from the following raw text:\n\n--------------------------------------------------\n{{ $json.text }}\n--------------------------------------------------\n\nRemember to extract:\n- vendor_name\n- invoice_number\n- amount\n- due_date\n\nAnd return ONLY the JSON object. "
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -1728,
+        208
+      ],
+      "id": "c7b7933a-8b1c-415d-91f4-3a7e962ac705",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "invoice",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "invoice_number",
+              "condition": "eq",
+              "keyValue": "={{ $json.output[0].content[0].text.invoice_number }}"
+            },
+            {
+              "keyName": "vendor_name",
+              "condition": "eq",
+              "keyValue": "={{ $json.output[0].content[0].text.vendor_name }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1408,
+        208
+      ],
+      "id": "4f2db726-5552-415c-a1b3-42a876e4e414",
+      "name": "Get many rows",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "6gX3B5b0b5K4klyR",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1b6f8590-e4d5-4598-8878-037849625708",
+              "leftValue": "={{ $json.vendor_name }}",
+              "rightValue": "={{ $('Message a model').item.json.output[0].content[0].text.vendor_name }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "2c7f9691-f5e6-5709-9989-148950736819",
+              "leftValue": "={{ $json.invoice_number }}",
+              "rightValue": "={{ $('Message a model').item.json.output[0].content[0].text.invoice_number }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1232,
+        208
+      ],
+      "id": "6a8f0a9b-82a0-4eeb-bb81-6ca6e6acb9b5",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "sendTo": "bhawishk15@gmail.com",
+        "subject": "⚠️ Potential Fraud Alert!",
+        "message": "=Attention Finance Team / Security Operations,\n\nAn automated security alert has been triggered by the AI Invoice Processing Agent. A potential duplicate or unauthorized invoice submission has been detected and automatically locked.\n\nSYSTEM DETAILS:\n--------------------------------------------\nStatus: BLOCKED / UNDER REVIEW\nDetection Trigger: Duplicate Record Found in Supabase\nVendor Name: {{ $('Message a model').item.json.output[0].content[0].text.vendor_name }}\nInvoice Number: {{ $('Message a model').item.json.output[0].content[0].text.invoice_number }}\nInvoice Amount: {{ $('Message a model').item.json.output[0].content[0].text.amount }}\nDue Date: {{ $('Message a model').item.json.output[0].content[0].text.due_date }}\nSubmitted By (User Email): {{ $('Webhook').item.json.body.email }}\n--------------------------------------------\n\nACTION REQUIRED: This transaction has been frozen to prevent accidental double-payment or financial discrepancy. Please manually audit the Supabase 'invoices' table and verify the authentic copy with the vendor before taking any further action.\n\nThis is an automated system alert. Do not reply directly to this email.",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -944,
+        112
+      ],
+      "id": "ac943ed9-8f5f-490d-9553-c0d587ba5ead",
+      "name": "Send a message",
+      "webhookId": "077a363b-dc92-4cd6-85af-037afedcb97b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gnx6ROEZfsgl4sS3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "944cf773-b1aa-4655-9951-5fb8e385d1d6",
+              "leftValue": "={{ $('Message a model').item.json.output[0].content[0].text.amount }}",
+              "rightValue": 5000,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -944,
+        304
+      ],
+      "id": "212936d4-a5e2-47f7-a9c7-7404d3073067",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "sendTo": "bhawishk15@gmail.com",
+        "subject": "=📋 Approval Required: High-Value Invoice from {{ $('Message a model').item.json.output[0].content[0].text.vendor_name }}",
+        "message": "=Hello Manager,\n\nAn automated high-value transaction alert has been triggered. The AI Invoice Agent has intercepted an invoice that exceeds the $5,000 threshold and requires your manual verification and payment approval.\n\nINVOICE DETAILS:\n--------------------------------------------\nStatus: PENDING MANAGER APPROVAL\nVendor Name: {{ $('Message a model').item.json.output[0].content[0].text.vendor_name }}\nInvoice Number: {{ $('Message a model').item.json.output[0].content[0].text.invoice_number }}\nInvoice Amount: {{ $('Message a model').item.json.output[0].content[0].text.amount }}\nDue Date: {{ $('Message a model').item.json.output[0].content[0].text.due_date }}\nSubmitted By (User Email): {{ $('Webhook').item.json.body.email }}\n--------------------------------------------\n\nACTION REQUIRED: Since the amount is above $5,000, this invoice has NOT been automatically logged into our primary database records. Please review the attached details, verify the transaction with the accounts department, and reply to this thread to authorize or reject the payment.\n\nThis is an automated system alert. Do not reply directly unless authorizing.",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -736,
+        208
+      ],
+      "id": "46a1fcb2-f030-4c63-8457-53e2b7370b98",
+      "name": "Send a message1",
+      "webhookId": "63d45743-774a-4640-b67e-1441499e61f7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gnx6ROEZfsgl4sS3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "invoice",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "vendor_name",
+              "fieldValue": "={{ $('Message a model').item.json.output[0].content[0].text.vendor_name }}"
+            },
+            {
+              "fieldId": "vendor_mail",
+              "fieldValue": "={{ $('Webhook').item.json.body.email }}"
+            },
+            {
+              "fieldId": "invoice_number",
+              "fieldValue": "={{ $('Message a model').item.json.output[0].content[0].text.invoice_number }}"
+            },
+            {
+              "fieldId": "amount",
+              "fieldValue": "={{ $('Message a model').item.json.output[0].content[0].text.amount }}"
+            },
+            {
+              "fieldId": "due_date",
+              "fieldValue": "={{ $('Message a model').item.json.output[0].content[0].text.due_date }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        416
+      ],
+      "id": "4e8747b4-6b59-46b8-943f-fbd64dbaf890",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "6gX3B5b0b5K4klyR",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "=✅ Invoice Processed Successfully - {{ $('Message a model').item.json.output[0].content[0].text.invoice_number }}",
+        "message": "=Dear Team / Valued Partner,\n\nWe are pleased to inform you that your submitted invoice has been successfully processed by our automated AI Invoice Agent with zero human intervention.\n\nThe extracted details have been verified and securely logged into our financial ledger and records.\n\nTRANSACTION SUMMARY:\n--------------------------------------------\nStatus: PROCESSED & LOGGED\nVendor Name: {{ $('Message a model').item.json.output[0].content[0].text.vendor_name }}\nInvoice Number: {{ $('Message a model').item.json.output[0].content[0].text.invoice_number }}\nInvoice Amount: ${{ $('Message a model').item.json.output[0].content[0].text.amount }}\nPayment Due Date: {{ $('Message a model').item.json.output[0].content[0].text.due_date }}\n--------------------------------------------\n\nNo further action is required from your side. The accounts department will release the payment according to the agreed credit terms and due date.\n\nThank you for utilizing our digital smart portal!\n\nBest Regards,\nAccounts Payable Automation System\nInternational Cafe",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -496,
+        416
+      ],
+      "id": "79fd49b4-a271-4ff5-bd9b-8dddfdcdf84b",
+      "name": "Send a message2",
+      "webhookId": "39b72f50-e76f-41bb-9487-699b5a4b1b1c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gnx6ROEZfsgl4sS3",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "44f15e5d2687eeaf77a809dbf46489331c96f72d1b12166b60f2be6407b95a7a"
+  }
+}
