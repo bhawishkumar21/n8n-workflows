@@ -1,0 +1,912 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "SOC",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -5824,
+        16
+      ],
+      "id": "6342bbd8-92d7-45a0-8bfd-63bb1ce959b5",
+      "name": "Webhook",
+      "webhookId": "cfea0fce-df9b-464e-8ae7-20d596eabbd8"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.threat_category }}",
+                    "rightValue": "PowerShell Execution",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cdf4551f-48d5-46e6-9512-59bcec206da3"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "83410d25-9211-4a57-add6-01b9bc9071ad",
+                    "leftValue": "={{ $json.body.threat_category }}",
+                    "rightValue": "Brute Force",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1c40df08-74c5-452c-8866-c529995e88a4",
+                    "leftValue": "={{ $json.body.threat_category }}",
+                    "rightValue": "Malware",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "fd5edea4-ce45-4b3d-8d4f-eba0ba968495",
+                    "leftValue": "={{ $json.body.threat_category }}",
+                    "rightValue": "Phishing",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -5616,
+        16
+      ],
+      "id": "c9969dd0-65e6-4d01-a43f-180b6c1cabd6",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.virustotal.com/api/v3/files/{{ $json.body.indicators.file_hash_sha256 }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-apikey",
+              "value": "48d1d9910c581dc2d60ee5719733b30369c434d02713d2e15dc78d27c2833650"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -5408,
+        -112
+      ],
+      "id": "87435a45-3678-4c18-bab8-6179479420da",
+      "name": "HTTP Request",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://api.abuseipdb.com/api/v2/check",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "ipAddress",
+              "value": "={{ $json.body.indicators.source_ip }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "2a3be57f21f848a8691183ecdcd74cf0fef5f074ea8228cd597acfbcee0eab6d2f428b894859f569"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -5392,
+        80
+      ],
+      "id": "78faaacd-eb1b-4dbb-820e-ba0c4736317f",
+      "name": "HTTP Request1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -5200,
+        -32
+      ],
+      "id": "1023d3d0-bca6-4ef3-b5af-c7d3df2024d4",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert Security Operations Center (SOC) Incident Analyst. \nAnalyze the provided raw SIEM log along with threat intelligence API results.\n\nGenerate a structured JSON output containing:\n1. \"threat_summary\": A concise technical summary of the attack.\n2. \"estimated_severity\": High, Critical, Medium, or Low.\n3. \"mitre_mapping\": MITRE ATT&CK Tactics & Techniques (e.g., T1059.001 PowerShell).\n4. \"root_cause_analysis\": Root cause of the vulnerability/alert.\n5. \"vector_text\": A clean text block combining the incident details to be used for vector embeddings."
+            },
+            {
+              "content": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -5040,
+        -48
+      ],
+      "id": "3521a907-d804-4d93-9706-211590af5b5b",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "soc-memory",
+          "mode": "list",
+          "cachedResultName": "soc-memory"
+        },
+        "prompt": "={{ $json.vector_text }}",
+        "topK": 1,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -4544,
+        -48
+      ],
+      "id": "7998bc0c-8101-4984-88b5-eaa670758741",
+      "name": "Pinecone Vector Store",
+      "alwaysOutputData": true,
+      "credentials": {
+        "pineconeApi": {
+          "id": "AUJsOTJUp7JdQnc4",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "dimensions": 1024
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -4448,
+        160
+      ],
+      "id": "d65323f4-7986-4579-8388-11c835e1a3c8",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function findText(obj) {\n  if (!obj || typeof obj !== 'object') return null;\n  // New OpenAI 'Responses API' shape: { output: [ { content: [ { type:'output_text', text: '...' } ] } ] }\n  if (Array.isArray(obj.output)) {\n    for (const item of obj.output) {\n      if (Array.isArray(item.content)) {\n        for (const c of item.content) {\n          if (typeof c.text === 'string' && c.text.trim().length > 0) return c.text;\n        }\n      }\n    }\n  }\n  // Classic chat-completion shapes\n  const candidates = ['content', 'text'];\n  for (const key of candidates) {\n    if (typeof obj[key] === 'string' && obj[key].trim().length > 0) return obj[key];\n  }\n  if (obj.message && typeof obj.message.content === 'string' && obj.message.content.trim().length > 0) return obj.message.content;\n  if (Array.isArray(obj.choices) && obj.choices[0] && obj.choices[0].message && typeof obj.choices[0].message.content === 'string') return obj.choices[0].message.content;\n  return null;\n}\n\nfunction extractJson(text) {\n  // The model sometimes wraps JSON in prose or markdown fences.\n  // This pulls out just the first balanced {...} block, ignoring anything before/after it.\n  const start = text.indexOf('{');\n  if (start === -1) return null;\n  let depth = 0;\n  for (let i = start; i < text.length; i++) {\n    if (text[i] === '{') depth++;\n    else if (text[i] === '}') {\n      depth--;\n      if (depth === 0) return text.slice(start, i + 1);\n    }\n  }\n  return null;\n}\n\nfunction safeParse(rawOutput) {\n  let text = findText(rawOutput);\n  if (!text) text = JSON.stringify(rawOutput);\n  const jsonStr = extractJson(text);\n  let parsed = {};\n  if (jsonStr) {\n    try { parsed = JSON.parse(jsonStr); } catch (err) { parsed = {}; }\n  }\n  return { parsed, rawText: text };\n}\n\nfunction toDisplayString(val) {\n  if (val == null) return '';\n  if (typeof val === 'string') return val;\n  if (Array.isArray(val)) {\n    return val.map(v => typeof v === 'string' ? v : Object.values(v).filter(x => typeof x === 'string' || typeof x === 'number').join(' - ')).join('; ');\n  }\n  if (typeof val === 'object') return JSON.stringify(val);\n  return String(val);\n}\n\nconst rawOutput = $input.item.json;\nconst { parsed, rawText } = safeParse(rawOutput);\nconst mergedIncident = $('Merge').first().json;\n\nconst threat_summary = toDisplayString(parsed.threat_summary) || rawText || 'No summary generated';\nconst mitre_mapping = toDisplayString(parsed.mitre_mapping) || 'Unknown';\nconst root_cause_analysis = toDisplayString(parsed.root_cause_analysis) || 'Unknown';\nconst estimated_severity = toDisplayString(parsed.estimated_severity) || 'Unknown';\nconst vector_text = toDisplayString(parsed.vector_text) || threat_summary;\n\nreturn {\n  json: {\n    threat_summary,\n    estimated_severity,\n    mitre_mapping,\n    root_cause_analysis,\n    vector_text,\n    _raw_incident: mergedIncident\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4752,
+        -48
+      ],
+      "id": "1597bac4-941f-4d45-9a1e-6ffcf2257415",
+      "name": "Parse Incident Analysis"
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $('Parse Incident Analysis').first().json;\nconst matches = $('Pinecone Vector Store').all().map(i => i.json);\nconst bestMatch = matches.length > 0 ? matches[0] : null;\nconst score = (bestMatch && typeof bestMatch.score === 'number') ? bestMatch.score : 0;\n\nreturn [{\n  json: {\n    ...current,\n    historical_match: bestMatch,\n    similarity_score: score,\n    has_historical_match: score >= 0.9\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4240,
+        -48
+      ],
+      "id": "e04b43fe-68d8-4137-b1e3-86170e29a15a",
+      "name": "Merge Match and Current",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "sim-gate-cond-1",
+              "leftValue": "={{ $json.has_historical_match }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4048,
+        -48
+      ],
+      "id": "9cd04bba-280a-4fb8-8ec1-d8bc2e7f392a",
+      "name": "Similarity Gate (>90%)"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a SOC Comparison & Recommendation Agent. You are given the CURRENT incident analysis and a HISTORICAL matching incident retrieved from vector memory (with its similarity score). Compare the two, highlight exact differences in attack vector, IOCs, and severity, and produce a step-by-step resolution plan based on what worked historically.\n\nReturn ONLY a JSON object with these fields:\n1. \"comparison_notes\": key differences between the past and current attack.\n2. \"recommended_actions\": numbered step-by-step mitigation plan.\n3. \"is_repeat_incident\": true.\n4. \"confidence\": short note on how reliable this recommendation is given the similarity score."
+            },
+            {
+              "content": "=Current incident:\n{{ JSON.stringify($json) }}\n\nHistorical match:\n{{ JSON.stringify($json.historical_match) }}\nSimilarity score: {{ $json.similarity_score }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -3856,
+        -176
+      ],
+      "id": "23552889-8b0d-4b4d-93b9-01c2759c5efe",
+      "name": "Comparison & Recommendation Agent",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a SOC Recommendation Agent. No sufficiently similar historical incident was found in memory (this is a first-of-its-kind or rarely-seen case), so base your plan on general security best practice for this MITRE ATT&CK technique and threat category.\n\nReturn ONLY a JSON object with these fields:\n1. \"comparison_notes\": note that no historical match exists; briefly say why this incident matters going forward.\n2. \"recommended_actions\": numbered step-by-step mitigation plan.\n3. \"is_repeat_incident\": false.\n4. \"confidence\": short note that this is a best-practice recommendation, not a proven playbook."
+            },
+            {
+              "content": "=Current incident:\n{{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -3856,
+        80
+      ],
+      "id": "9451ff20-acb6-4a4f-9df1-5b26e3ec5b1e",
+      "name": "Recommendation Agent (New Threat)",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function findText(obj) {\n  if (!obj || typeof obj !== 'object') return null;\n  // New OpenAI 'Responses API' shape: { output: [ { content: [ { type:'output_text', text: '...' } ] } ] }\n  if (Array.isArray(obj.output)) {\n    for (const item of obj.output) {\n      if (Array.isArray(item.content)) {\n        for (const c of item.content) {\n          if (typeof c.text === 'string' && c.text.trim().length > 0) return c.text;\n        }\n      }\n    }\n  }\n  // Classic chat-completion shapes\n  const candidates = ['content', 'text'];\n  for (const key of candidates) {\n    if (typeof obj[key] === 'string' && obj[key].trim().length > 0) return obj[key];\n  }\n  if (obj.message && typeof obj.message.content === 'string' && obj.message.content.trim().length > 0) return obj.message.content;\n  if (Array.isArray(obj.choices) && obj.choices[0] && obj.choices[0].message && typeof obj.choices[0].message.content === 'string') return obj.choices[0].message.content;\n  return null;\n}\n\nfunction extractJson(text) {\n  // The model sometimes wraps JSON in prose or markdown fences.\n  // This pulls out just the first balanced {...} block, ignoring anything before/after it.\n  const start = text.indexOf('{');\n  if (start === -1) return null;\n  let depth = 0;\n  for (let i = start; i < text.length; i++) {\n    if (text[i] === '{') depth++;\n    else if (text[i] === '}') {\n      depth--;\n      if (depth === 0) return text.slice(start, i + 1);\n    }\n  }\n  return null;\n}\n\nfunction safeParse(rawOutput) {\n  let text = findText(rawOutput);\n  if (!text) text = JSON.stringify(rawOutput);\n  const jsonStr = extractJson(text);\n  let parsed = {};\n  if (jsonStr) {\n    try { parsed = JSON.parse(jsonStr); } catch (err) { parsed = {}; }\n  }\n  return { parsed, rawText: text };\n}\n\nfunction toDisplayString(val) {\n  if (val == null) return '';\n  if (typeof val === 'string') return val;\n  if (Array.isArray(val)) {\n    return val.map(v => typeof v === 'string' ? v : Object.values(v).filter(x => typeof x === 'string' || typeof x === 'number').join(' - ')).join('; ');\n  }\n  if (typeof val === 'object') return JSON.stringify(val);\n  return String(val);\n}\n\nconst rawOutput = $input.item.json;\nconst { parsed, rawText } = safeParse(rawOutput);\nconst incident = $('Merge Match and Current').first().json;\n\nreturn {\n  json: {\n    ...incident,\n    comparison_notes: toDisplayString(parsed.comparison_notes) || 'N/A',\n    recommended_actions: toDisplayString(parsed.recommended_actions) || rawText || 'N/A',\n    is_repeat_incident: !!parsed.is_repeat_incident,\n    confidence: toDisplayString(parsed.confidence) || 'N/A'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3536,
+        -64
+      ],
+      "id": "2dd8dc94-a39f-4460-9ad8-12e83de5fc13",
+      "name": "Parse Recommendation"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a SOC Reporting Agent. Compile all provided incident data into a concise executive briefing for SOC leadership.\n\nReturn ONLY a JSON object with these fields:\n1. \"report_title\": short incident title, e.g. '[HIGH] Brute Force Attempt - <date>'.\n2. \"executive_summary\": 3-5 sentence plain-English summary for leadership.\n3. \"email_body_html\": a well-formatted HTML email body including severity, MITRE mapping, root cause, comparison notes, and numbered recommended actions.\n4. \"drive_report_text\": a plain-text version of the full investigation report suitable for archival."
+            },
+            {
+              "content": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -3360,
+        -64
+      ],
+      "id": "49463eb4-25c1-418d-955a-7b96d0403d9f",
+      "name": "Reporting Agent",
+      "credentials": {
+        "openAiApi": {
+          "id": "A5P5QU00jQXmBQhA",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function findText(obj) {\n  if (!obj || typeof obj !== 'object') return null;\n  // New OpenAI 'Responses API' shape: { output: [ { content: [ { type:'output_text', text: '...' } ] } ] }\n  if (Array.isArray(obj.output)) {\n    for (const item of obj.output) {\n      if (Array.isArray(item.content)) {\n        for (const c of item.content) {\n          if (typeof c.text === 'string' && c.text.trim().length > 0) return c.text;\n        }\n      }\n    }\n  }\n  // Classic chat-completion shapes\n  const candidates = ['content', 'text'];\n  for (const key of candidates) {\n    if (typeof obj[key] === 'string' && obj[key].trim().length > 0) return obj[key];\n  }\n  if (obj.message && typeof obj.message.content === 'string' && obj.message.content.trim().length > 0) return obj.message.content;\n  if (Array.isArray(obj.choices) && obj.choices[0] && obj.choices[0].message && typeof obj.choices[0].message.content === 'string') return obj.choices[0].message.content;\n  return null;\n}\n\nfunction extractJson(text) {\n  // The model sometimes wraps JSON in prose or markdown fences.\n  // This pulls out just the first balanced {...} block, ignoring anything before/after it.\n  const start = text.indexOf('{');\n  if (start === -1) return null;\n  let depth = 0;\n  for (let i = start; i < text.length; i++) {\n    if (text[i] === '{') depth++;\n    else if (text[i] === '}') {\n      depth--;\n      if (depth === 0) return text.slice(start, i + 1);\n    }\n  }\n  return null;\n}\n\nfunction safeParse(rawOutput) {\n  let text = findText(rawOutput);\n  if (!text) text = JSON.stringify(rawOutput);\n  const jsonStr = extractJson(text);\n  let parsed = {};\n  if (jsonStr) {\n    try { parsed = JSON.parse(jsonStr); } catch (err) { parsed = {}; }\n  }\n  return { parsed, rawText: text };\n}\n\nfunction toDisplayString(val) {\n  if (val == null) return '';\n  if (typeof val === 'string') return val;\n  if (Array.isArray(val)) {\n    return val.map(v => typeof v === 'string' ? v : Object.values(v).filter(x => typeof x === 'string' || typeof x === 'number').join(' - ')).join('; ');\n  }\n  if (typeof val === 'object') return JSON.stringify(val);\n  return String(val);\n}\n\nconst rawOutput = $input.item.json;\nconst { parsed, rawText } = safeParse(rawOutput);\nconst incident = $('Parse Recommendation').first().json;\n\nreturn {\n  json: {\n    ...incident,\n    report_title: toDisplayString(parsed.report_title) || ('SOC Incident - ' + String(incident.threat_summary || 'Unknown').slice(0, 60)),\n    executive_summary: toDisplayString(parsed.executive_summary) || incident.threat_summary || 'No summary available',\n    email_body_html: toDisplayString(parsed.email_body_html) || ('<p>' + String(incident.threat_summary || 'No summary available') + '</p>'),\n    drive_report_text: toDisplayString(parsed.drive_report_text) || JSON.stringify(incident, null, 2)\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3056,
+        -64
+      ],
+      "id": "3f306a8f-1979-4500-956b-2628f14d5fd0",
+      "name": "Parse Final Report"
+    },
+    {
+      "parameters": {
+        "sendTo": "bhawishk15@gmail.com",
+        "subject": "={{ $json.report_title }}",
+        "message": "={{ $json.email_body_html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -2720,
+        -192
+      ],
+      "id": "b5682f74-92d5-4a4d-ad75-ed0ee01a0a52",
+      "name": "Gmail - Notify SOC Lead",
+      "webhookId": "gmail-notify-soc-lead",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gnx6ROEZfsgl4sS3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "drive_report_text",
+        "options": {
+          "fileName": "={{ 'incident_report_' + $now.format('yyyyLLdd_HHmmss') + '.txt' }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -2720,
+        64
+      ],
+      "id": "85745647-fec4-4828-a46b-2a009059ae9e",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "name": "={{ 'incident_report_' + $now.format('yyyyLLdd_HHmmss') + '.txt' }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1bNYXo7gK-sMVGS4JjvLj-zXG6pXUMe2U",
+          "mode": "list",
+          "cachedResultName": "soc-memory",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1bNYXo7gK-sMVGS4JjvLj-zXG6pXUMe2U"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -2512,
+        64
+      ],
+      "id": "a1dab0e3-7d71-4dc8-8dc2-1f1531b81b6f",
+      "name": "Google Drive - Archive Report",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "pmmFTRLJEqMfZXOT",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "soc_incidents",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "threat_summary",
+              "fieldValue": "={{ $('Parse Final Report').item.json.threat_summary }}"
+            },
+            {
+              "fieldId": "estimated_severity",
+              "fieldValue": "={{ $('Parse Final Report').item.json.estimated_severity }}"
+            },
+            {
+              "fieldId": "mitre_mapping",
+              "fieldValue": "={{ $('Parse Final Report').item.json.mitre_mapping }}"
+            },
+            {
+              "fieldId": "root_cause_analysis",
+              "fieldValue": "={{ $('Parse Final Report').item.json.root_cause_analysis }}"
+            },
+            {
+              "fieldId": "vector_text",
+              "fieldValue": "={{ $('Parse Final Report').item.json.vector_text }}"
+            },
+            {
+              "fieldId": "similarity_score",
+              "fieldValue": "={{ $('Parse Final Report').item.json.similarity_score }}"
+            },
+            {
+              "fieldId": "has_historical_match",
+              "fieldValue": "={{ $('Parse Final Report').item.json.has_historical_match }}"
+            },
+            {
+              "fieldId": "is_repeat_incident",
+              "fieldValue": "={{ $('Parse Final Report').item.json.is_repeat_incident }}"
+            },
+            {
+              "fieldId": "comparison_notes",
+              "fieldValue": "={{ $('Parse Final Report').item.json.comparison_notes }}"
+            },
+            {
+              "fieldId": "recommended_actions",
+              "fieldValue": "={{ $('Parse Final Report').item.json.recommended_actions }}"
+            },
+            {
+              "fieldId": "confidence",
+              "fieldValue": "={{ $('Parse Final Report').item.json.confidence }}"
+            },
+            {
+              "fieldId": "report_title",
+              "fieldValue": "={{ $('Parse Final Report').item.json.report_title }}"
+            },
+            {
+              "fieldId": "executive_summary",
+              "fieldValue": "={{ $('Parse Final Report').item.json.executive_summary }}"
+            },
+            {
+              "fieldId": "drive_file_link",
+              "fieldValue": "={{ $json.webViewLink }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -2304,
+        64
+      ],
+      "id": "a9c3d36d-9d1c-471a-8884-b4798b46922b",
+      "name": "Supabase - Insert Incident",
+      "credentials": {
+        "supabaseApi": {
+          "id": "6gX3B5b0b5K4klyR",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -2880,
+        -64
+      ],
+      "id": "16c17a7f-2c1f-4fcd-92a0-90c1a8a3fe9f",
+      "name": "Keep Only 1 Item (Dedup Safety Net)"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Parse Incident Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Merge Match and Current",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Incident Analysis": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Match and Current": {
+      "main": [
+        [
+          {
+            "node": "Similarity Gate (>90%)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Similarity Gate (>90%)": {
+      "main": [
+        [
+          {
+            "node": "Comparison & Recommendation Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Recommendation Agent (New Threat)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comparison & Recommendation Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recommendation Agent (New Threat)": {
+      "main": [
+        [
+          {
+            "node": "Parse Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Recommendation": {
+      "main": [
+        [
+          {
+            "node": "Reporting Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reporting Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Final Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Final Report": {
+      "main": [
+        [
+          {
+            "node": "Keep Only 1 Item (Dedup Safety Net)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Google Drive - Archive Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - Archive Report": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Insert Incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Only 1 Item (Dedup Safety Net)": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Notify SOC Lead",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "44f15e5d2687eeaf77a809dbf46489331c96f72d1b12166b60f2be6407b95a7a"
+  }
+}
