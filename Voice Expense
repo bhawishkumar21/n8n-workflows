@@ -1,0 +1,362 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "voice-transcribe",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -624,
+        176
+      ],
+      "id": "6f3975d6-761e-4d08-b29b-6cf08e150bc4",
+      "name": "Webhook",
+      "webhookId": "bc0dbdf2-62c0-49f0-8ab3-24be1a1c8221"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-flash-lite"
+        },
+        "text": "Listen to this audio carefully and transcribe every spoken word accurately. Return ONLY the raw transcribed text. Do not add any extra explanations, greetings, or formatting.",
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -416,
+        176
+      ],
+      "id": "5d917734-2fe5-406e-8758-5d44c7f1acd7",
+      "name": "Analyze audio",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "PlrrvXZb0tKW7cYO",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"text\": \"{{ $json.content.parts[0].text }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -208,
+        176
+      ],
+      "id": "81994662-e52b-41c4-83a5-e6dfa158f6df",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "log-expense",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -352,
+        -16
+      ],
+      "id": "e59ec407-78d5-4d38-91e2-347bdd8647c5",
+      "name": "Webhook1",
+      "webhookId": "6b7cba93-8d43-48d7-91a8-3a36ef0c61a3"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-flash-lite"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a financial entity extraction AI. Extract the numeric amount and purpose from the text.\nRespond ONLY with a valid JSON object. Do not add markdown code blocks (no ```json).\n\nOutput Format:\n{\"amount\": 1500, \"purpose\": \"burger\"}",
+              "role": "model"
+            },
+            {
+              "content": "=={{ $json.body.text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -144,
+        -16
+      ],
+      "id": "66741a17-6281-486e-b7e9-9d38c757ddf2",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "PlrrvXZb0tKW7cYO",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Target exact Gemini nested structure path\nconst geminiOutput = $input.first().json;\nconst rawText = geminiOutput.content?.parts?.[0]?.text || geminiOutput.text || \"\";\n\n// Clean whitespace/markdown\nconst cleanJson = rawText.replace(/```json|```/g, '').trim();\n\nlet amount = 0;\nlet purpose = \"Expense\";\n\nif (cleanJson) {\n  try {\n    const parsed = JSON.parse(cleanJson);\n    amount = Number(parsed.amount) || 0;\n    purpose = String(parsed.purpose || \"Expense\");\n  } catch (err) {\n    const amtMatch = cleanJson.match(/\"amount\"\\s*:\\s*(\\d+)/);\n    const purpMatch = cleanJson.match(/\"purpose\"\\s*:\\s*\"([^\"]+)\"/);\n    if (amtMatch) amount = Number(amtMatch[1]);\n    if (purpMatch) purpose = purpMatch[1];\n  }\n}\n\n// Generate Timestamp (YYYY-MM-DD HH:mm:ss)\nconst now = new Date();\nconst formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);\n\nreturn {\n  json: {\n    date_time: formattedDate,\n    amount: amount,\n    purpose: purpose\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -16
+      ],
+      "id": "ff39fcb3-0daa-450e-bbc5-acffbf35ce62",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1G8geyp-oKMm_2FRW9OU-GV_Zt0xBmoU4xRDKO4fX-Yk",
+          "mode": "list",
+          "cachedResultName": "expenses tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1G8geyp-oKMm_2FRW9OU-GV_Zt0xBmoU4xRDKO4fX-Yk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1G8geyp-oKMm_2FRW9OU-GV_Zt0xBmoU4xRDKO4fX-Yk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "DATE AND TIME": "={{ $json.date_time }}",
+            "AMOUNT": "={{ $json.amount }}",
+            "PURPOSE": "={{ $json.purpose }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "DATE AND TIME",
+              "displayName": "DATE AND TIME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AMOUNT",
+              "displayName": "AMOUNT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "PURPOSE",
+              "displayName": "PURPOSE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        -16
+      ],
+      "id": "2525327d-f186-4bbb-941a-399f7245b8b9",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "grmAvQDsSZF5H526",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1G8geyp-oKMm_2FRW9OU-GV_Zt0xBmoU4xRDKO4fX-Yk",
+          "mode": "list",
+          "cachedResultName": "expenses tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1G8geyp-oKMm_2FRW9OU-GV_Zt0xBmoU4xRDKO4fX-Yk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1G8geyp-oKMm_2FRW9OU-GV_Zt0xBmoU4xRDKO4fX-Yk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        -16
+      ],
+      "id": "6c3487f7-9e87-4c88-b6b7-14b097a2c1c3",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "grmAvQDsSZF5H526",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet total = 0;\n\nitems.forEach(item => {\n  const rowData = item.json;\n  \n  // Dynamic column matching for Amount\n  const amountValue = rowData.AMOUNT || rowData.Amount || rowData.amount || rowData['AMOUNT'] || rowData['Amount'] || rowData['amount'] || 0;\n  \n  // Clean string currency symbols (e.g., \"1500\" or \"Rs. 1500\")\n  const numericAmount = Number(String(amountValue).replace(/[^0-9.]/g, '')) || 0;\n  \n  total += numericAmount;\n});\n\nreturn {\n  json: {\n    totalAmount: total\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -16
+      ],
+      "id": "46ba0b78-f3fd-497c-a37e-bb8aab142cdb",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"totalAmount\": {{ $json.totalAmount }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        912,
+        -16
+      ],
+      "id": "c01efbf9-ac31-4a47-8006-27167fb616ab",
+      "name": "Respond to Webhook1"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Analyze audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze audio": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "44f15e5d2687eeaf77a809dbf46489331c96f72d1b12166b60f2be6407b95a7a"
+  }
+}
